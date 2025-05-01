@@ -35,4 +35,6 @@ body {
     background: inherit;
 }
 
-
+.todo-count {
+    font-size: 15px;
+}

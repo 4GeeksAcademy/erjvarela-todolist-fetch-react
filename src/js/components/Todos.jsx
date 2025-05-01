@@ -1,13 +1,41 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faEraser } from '@fortawesome/free-solid-svg-icons';
 
 const url = "https://playground.4geeks.com"
 const user = "erjvarela"
 
+async function fetchCreateUser() {
+    try {
+        const response = await fetch(`${url}/todo/users/${user}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'accept': 'application/json',
+            }
+        }
+        )
+        if (!response.ok) {
+            console.log("error adding todo");
+            return false
+        }
+        return true
+    } catch (error) {
+        console.log("Error at making request to add todo:", error);
+        return false
+    }
+}
+
 async function fetchGetTodo() {
     try {
         const response = await fetch(`${url}/todo/users/${user}`)
+        if (response.status === 404) {
+            const created = await fetchCreateUser()
+            if (created) {
+                fetchGetTodo()
+            }
+
+        }
         if (!response.ok) {
             console.log("error fetching todos");
         }
@@ -66,7 +94,6 @@ const Todos = () => {
     const [todos, setTodos] = useState([]);
     const [newTask, setNewTask] = useState("");
     const trails = [
-        { opacity: "0.8", width: "98%" },
         { opacity: "0.6", width: "96%" },
         { opacity: "0.4", width: "94%" }
     ];
@@ -91,6 +118,12 @@ const Todos = () => {
             const newTodos = todos.filter((todo) => todo.id !== idToDelete);
             setTodos(newTodos);
         }
+    };
+
+    const removeAllTodo = async () => {
+        const deletePromise = todos.map((todo) => removeTodo(todo.id));
+        await Promise.all(deletePromise);
+        setTodos([]);
     };
 
     useEffect(() => {
@@ -157,6 +190,18 @@ const Todos = () => {
                         ) : (
                             <TodoItem className="list-group-item mx-auto" style={{ width: '100%' }}><h3>No tasks, add a task</h3></TodoItem>
                         )}
+                        <li className="list-group-item d-flex justify-content-between align-items-center todo-item mx-auto" style={{ width: '100%' }}>
+                            <small className="todo-count font-weight-light text-muted">{todos.length} item left</small>
+                            <div className="todo-delete"
+                                style={{
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => removeAllTodo()}
+                            >
+                                <small className="mx-1">remove tasks</small>
+                                <FontAwesomeIcon icon={faEraser}></FontAwesomeIcon>
+                            </div>
+                        </li>
                         {trails.map((trail, index) => (
                             <Traling key={index} width={trail.width} opacity={trail.opacity} />
                         ))}
