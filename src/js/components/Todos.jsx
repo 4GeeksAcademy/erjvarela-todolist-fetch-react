@@ -1,6 +1,66 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
+
+const url = "https://playground.4geeks.com"
+const user = "erjvarela"
+
+async function fetchGetTodo() {
+    try {
+        const response = await fetch(`${url}/todo/users/${user}`)
+        if (!response.ok) {
+            console.log("error fetching todos");
+        }
+        const data = await response.json();
+        console.log("Fetched todos:", data);
+        return data.todos;
+    } catch (error) {
+        console.log("Error at making request to get todos:", error);
+    }
+}
+
+async function fetchAddTodo(newTask) {
+    try {
+        const response = await fetch(`${url}/todo/todos/${user}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'accept': 'application/json',
+            },
+            body: JSON.stringify({
+                "label": newTask,
+                "is_done": false
+            }),
+        });
+        if (!response.ok) {
+            console.log("error adding todo");
+        }
+        const data = await response.json();
+        console.log("Added todo:", data);
+        return data;
+    } catch (error) {
+        console.log("Error at making request to add todo:", error);
+        throw error;
+    }
+}
+
+async function fetchDeleteTodo(todoId) {
+    try {
+        const response = await fetch(`${url}/todo/todos/${todoId}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            console.log(`error deleting todo with ID: ${todoId}`);
+            return false;
+        } else {
+            console.log(`Deleted todo with ID: ${todoId}`);
+            return true;
+        }
+    } catch (error) {
+        console.log(`Error at making request to delete todo with ID: ${todoId}`, error);
+        return false;
+    }
+}
 
 const Todos = () => {
     const [todos, setTodos] = useState([]);
@@ -10,6 +70,32 @@ const Todos = () => {
         { opacity: "0.6", width: "96%" },
         { opacity: "0.4", width: "94%" }
     ];
+
+    const getTodos = async () => {
+        const newTodos = await fetchGetTodo()
+        setTodos(newTodos)
+    }
+
+    const addTodo = async (event) => {
+        if (event.key === "Enter" && newTask.trim()) {
+            const newTodo = await fetchAddTodo(newTask)
+            const newTodos = [...todos, newTodo];
+            setTodos(newTodos);
+            setNewTask("");
+        }
+    };
+
+    const removeTodo = async (idToDelete) => {
+        const removed = await fetchDeleteTodo(idToDelete)
+        if (removed) {
+            const newTodos = todos.filter((todo) => todo.id !== idToDelete);
+            setTodos(newTodos);
+        }
+    };
+
+    useEffect(() => {
+        getTodos()
+    }, []);
 
     const Traling = (props) => {
         return (
@@ -41,19 +127,6 @@ const Todos = () => {
         );
     };
 
-    const addTodo = (event) => {
-        if (event.key === "Enter" && newTask.trim()) {
-            const newTodos = [...todos, newTask];
-            setTodos(newTodos);
-            setNewTask("");
-        }
-    };
-
-    const removeTodo = (indexToDelete) => {
-        const newTodos = todos.filter((_, index) => index !== indexToDelete);
-        setTodos(newTodos);
-    };
-
     return (
         <div className="container">
             <div className="row ">
@@ -76,9 +149,9 @@ const Todos = () => {
                             />
                         </li>
                         {todos.length > 0 ? (
-                            todos.map((todo, index) => (
-                                <TodoItem key={index} deleteFunction={removeTodo} index={index}>
-                                    <span>{todo}</span>
+                            todos.map((todo) => (
+                                <TodoItem key={todo.id} deleteFunction={removeTodo} index={todo.id}>
+                                    <span>{todo.label}</span>
                                 </TodoItem>
                             ))
                         ) : (
